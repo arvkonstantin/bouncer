@@ -1,9 +1,6 @@
 package org.javastack.bouncer;
 
 public class Constants {
-	public static final String VERSION_FILE = "/bouncer-version.mf";
-	public static final String SUITES_FILE = "/ciphersuites.conf";
-
 	// System properties (logs)
 	public static final String PROP_OUT_FILE = "log.stdOutFile";
 	public static final String PROP_ERR_FILE = "log.stdErrFile";

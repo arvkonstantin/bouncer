@@ -50,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.management.JMException;
 
+import javafx.scene.layout.BorderImage;
 import org.javastack.bouncer.GenericPool.GenericPoolFactory;
 import org.javastack.bouncer.TaskManager.AuditableRunner;
 import org.javastack.bouncer.jmx.BouncerStatistics;
@@ -67,6 +68,8 @@ public class Bouncer implements ServerContext {
 			return new ByteArrayOutputStream(Constants.BUFFER_LEN);
 		}
 	};
+
+	private long lastReloaded = 0;
 
 	// For graceful reload
 	private final Set<Awaiter> reloadables = Collections.synchronizedSet(new HashSet<Awaiter>());
@@ -91,60 +94,28 @@ public class Bouncer implements ServerContext {
 	private final LinkedHashMap<Long, List<ClusterClient>> clusterClients = new LinkedHashMap<Long, List<ClusterClient>>();
 	private final LinkedHashMap<StickyKey, StickyStore<InetAddress, InetAddress>> clusterStickies = new LinkedHashMap<StickyKey, StickyStore<InetAddress, InetAddress>>();
 	private final BouncerStatistics stats = new BouncerStatistics();
+	public boolean exit = false;
+
+
+	public void close() {
+		if (!reloadables.isEmpty() || !orderedShutdown.isEmpty()) {
+			for (Shutdownable shut : orderedShutdown) {
+				shut.setShutdown();
+			}
+			for (Shutdownable shut : reloadables) {
+				shut.setShutdown();
+			}
+			muxClients.values().forEach(muxClient -> {
+				muxClient.remote.shutdown = true;
+				muxClient.mapLocals.values().forEach(muxClientLocal -> muxClientLocal.shutdown = true);
+			});
+		}
+	}
 
 	// ============================== Global code
 
-	public static void main(final String[] args) throws Exception {
-		if (args.length < 1) {
-			System.out.println(Bouncer.class.getName() + " <configName|configURL>");
-			return;
-		}
-		final String configFile = args[0];
-		final Bouncer bouncer = new Bouncer();
-		//
-		// Init Log System
-		if (Boolean.getBoolean("DEBUG")) {
-			Log.enableDebug(); // Enable debugging messages
-			Log.setMode(Log.LOG_ORIG_STDOUT);
-		} else {
-			// Redir STDOUT to File
-			if (System.getProperty(Constants.PROP_OUT_FILE) != null)
-				Log.redirStdOutLog(System.getProperty(Constants.PROP_OUT_FILE));
-			// Redir STDERR to File
-			if (System.getProperty(Constants.PROP_ERR_FILE) != null)
-				Log.redirStdErrLog(System.getProperty(Constants.PROP_ERR_FILE));
-			if (Boolean.getBoolean(Constants.PROP_OUT_STDTOO)) {
-				Log.setMode(Log.LOG_CURR_STDOUT | Log.LOG_ORIG_STDOUT);
-			} else {
-				Log.setMode(Log.LOG_CURR_STDOUT);
-			}
-		}
-		Log.info("Starting " + bouncer.getClass() + " version " + getVersion()
-				+ (Log.isDebug() ? " debug-mode" : ""));
-		// Register BouncyCastleProvider if possible
-		try {
-			final String bcName = "org.bouncycastle.jce.provider.BouncyCastleProvider";
-			Security.addProvider((Provider) Class.forName(bcName).newInstance());
-		} catch (Throwable t) {
-			Log.warn("Unable to register BouncyCastleProvider: " + t.toString());
-		}
-		// Read config
-		final URL urlConfig = bouncer.getConfigSource(configFile, args);
-		if (urlConfig == null) {
-			Log.error("Config not found: " + configFile);
-			return;
-		}
-		// Start JMX
-		bouncer.initJMX();
-		// Schedule Statistics
-		timer.scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				Log.info(bouncer.getStatistics().toString());
-			}
-		}, 1000, Constants.STATISTICS_PRINT_INTVL);
-		long lastReloaded = 0;
-		while (true) {
+	public void reload(URL urlConfig) {
+		while (!exit) {
 			InputStream isConfig = null;
 			try {
 				final URLConnection connConfig = urlConfig.openConnection();
@@ -158,7 +129,7 @@ public class Bouncer implements ServerContext {
 						Log.info("Reloading config");
 					}
 					lastReloaded = lastModified;
-					bouncer.reload(isConfig);
+					this.reload(isConfig);
 					Log.info("Reloaded config");
 				}
 			} catch (Exception e) {
@@ -170,23 +141,6 @@ public class Bouncer implements ServerContext {
 		}
 	}
 
-	static String getVersion() {
-		InputStream is = null;
-		try {
-			final Properties p = new Properties();
-			is = Bouncer.class.getResourceAsStream(Constants.VERSION_FILE);
-			p.load(is);
-			// Implementation-Vendor-Id: ${project.groupId}
-			// Implementation-Title: ${project.name}
-			// Implementation-Version: ${project.version}
-			return p.getProperty("Bouncer-Version");
-		} catch (Exception e) {
-			return "UNKNOWN";
-		} finally {
-			IOHelper.closeSilent(is);
-		}
-	}
-
 	static void doSleep(final long time) {
 		try {
 			Thread.sleep(time);
@@ -195,7 +149,7 @@ public class Bouncer implements ServerContext {
 		}
 	}
 
-	URL getConfigSource(final String configFile, final String[] args) throws MalformedURLException {
+	public URL getConfigSource(final String configFile, final String[] args) throws MalformedURLException {
 		if (configFile.startsWith("http:") || configFile.startsWith("https:")
 				|| configFile.startsWith("file:")) {
 			return new URL(configFile);
@@ -258,11 +212,11 @@ public class Bouncer implements ServerContext {
 		return null;
 	}
 
-	void initJMX() throws JMException {
+	public void initJMX() throws JMException {
 		stats.init();
 	}
 
-	void destroyJMX() throws JMException {
+	public void destroyJMX() throws JMException {
 		stats.destroy();
 	}
 

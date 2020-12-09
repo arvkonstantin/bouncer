@@ -22,35 +22,11 @@ public class CipherSuites {
 		init();
 	}
 
-	private void load(final List<String> clientSuites, final List<String> serverSuites) throws IOException {
-		BufferedReader in = null;
-		try {
-			in = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream(
-					Constants.SUITES_FILE)));
-			String line = null;
-			while ((line = in.readLine()) != null) {
-				line = line.trim();
-				if (line.charAt(0) == '#')
-					continue;
-				final String[] tok = line.split("=", 2);
-				final String algorith = tok[0].trim().toUpperCase();
-				final String usage = tok[1].trim().toUpperCase();
-				if (usage.indexOf('C') != -1) {
-					if (!clientSuites.contains(algorith))
-						clientSuites.add(algorith);
-				}
-				if (usage.indexOf('S') != -1) {
-					if (!serverSuites.contains(algorith))
-						serverSuites.add(algorith);
-				}
-			}
-		} finally {
-			try {
-				if (in != null)
-					in.close();
-			} catch (Exception ign) {
-			}
-		}
+	private void load(final List<String> clientSuites, final List<String> serverSuites) throws IOException, NoSuchAlgorithmException {
+		final SSLContext ctx = SSLContext.getDefault();
+		final SSLParameters sslParams = ctx.getDefaultSSLParameters();
+		this.setupClientCipherSuites(sslParams);
+		this.setupServerCipherSuites(sslParams);
 	}
 
 	private void filterSupportedSSLParameters(final List<String> protos, final List<String> clientSuites,
@@ -68,7 +44,7 @@ public class CipherSuites {
 		final List<String> serverSuites = new ArrayList<String>();
 		protos.add("TLSv1.2");
 		protos.add("TLSv1.1");
-		protos.add("TLSv1");
+		//protos.add("TLSv1");
 		load(clientSuites, serverSuites);
 		filterSupportedSSLParameters(protos, clientSuites, serverSuites);
 		this.protos = protos.toArray(new String[protos.size()]);
