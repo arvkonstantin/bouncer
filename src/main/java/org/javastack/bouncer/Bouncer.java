@@ -50,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.management.JMException;
 
-import javafx.scene.layout.BorderImage;
 import org.javastack.bouncer.GenericPool.GenericPoolFactory;
 import org.javastack.bouncer.TaskManager.AuditableRunner;
 import org.javastack.bouncer.jmx.BouncerStatistics;

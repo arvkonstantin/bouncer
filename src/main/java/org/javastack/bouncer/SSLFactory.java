@@ -13,6 +13,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -22,7 +23,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
-import javax.xml.bind.DatatypeConverter;
 
 public class SSLFactory {
 	private final static char[] DEFAULT_PWD = "changeit".toCharArray();
@@ -87,7 +87,8 @@ public class SSLFactory {
 					builder.append(line);
 				}
 			}
-			final byte[] encoded = DatatypeConverter.parseBase64Binary(builder.toString());
+			Base64.Decoder decoder = Base64.getDecoder();
+			final byte[] encoded = decoder.decode(builder.toString());
 			final PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
 			final KeyFactory kf = KeyFactory.getInstance("RSA");
 			key = kf.generatePrivate(keySpec);

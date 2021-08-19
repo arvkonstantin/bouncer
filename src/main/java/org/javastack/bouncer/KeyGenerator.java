@@ -18,6 +18,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Vector;
 import java.io.ByteArrayOutputStream;
@@ -25,8 +26,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-
-import javax.xml.bind.DatatypeConverter;
 
 import sun.security.util.ObjectIdentifier;
 import sun.security.x509.AlgorithmId;
@@ -151,7 +150,8 @@ public class KeyGenerator {
 	}
 
 	static void writeBufferBase64(OutputStream out, byte[] bufIn) throws IOException {
-		final byte[] buf = DatatypeConverter.printBase64Binary(bufIn).getBytes();
+		Base64.Encoder encoder = Base64.getEncoder();
+		final byte[] buf = encoder.encodeToString(bufIn).getBytes();
 		final int BLOCK_SIZE = 64;
 		for (int i = 0; i < buf.length; i += BLOCK_SIZE) {
 			out.write(buf, i, Math.min(BLOCK_SIZE, buf.length - i));
