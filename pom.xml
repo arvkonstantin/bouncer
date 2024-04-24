@@ -140,22 +140,12 @@
 		</extensions>
 	</build>
 
-	<!-- Deployment Maven-S3 -->
+	<!-- Deployment Maven -->
 	<distributionManagement>
-		<repository>
-			<name>S3 Release Repository</name>
-			<id>maven-s3-release-repo</id>
-			<url>s3://maven-release/release</url>
-		</repository>
 		<repository>
       		<id>ossrh</id>
       		<name>Central Repository OSSRH</name>
       		<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
     	</repository>
-		<snapshotRepository>
-			<name>S3 Snapshot Repository</name>
-			<id>maven-s3-snapshot-repo</id>
-			<url>s3://maven-snapshot/snapshot</url>
-		</snapshotRepository>
 	</distributionManagement>
 </project>
