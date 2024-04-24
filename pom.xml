@@ -2,7 +2,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>org.javastack</groupId>
+	<groupId>com.arvkonstantin</groupId>
 	<artifactId>bouncer</artifactId>
 	<version>2.2.11</version>
 	<description>Bouncer is a network TCP port redirector/forward proxy (like rinetd) with extra features like Reverse tunneling (like ssh -R), SSL tunneling (like stunnel), connection Failover, LoadBalancing and Clustering.</description>
@@ -147,6 +147,11 @@
 			<id>maven-s3-release-repo</id>
 			<url>s3://maven-release/release</url>
 		</repository>
+		<repository>
+      		<id>ossrh</id>
+      		<name>Central Repository OSSRH</name>
+      		<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    	</repository>
 		<snapshotRepository>
 			<name>S3 Snapshot Repository</name>
 			<id>maven-s3-snapshot-repo</id>
